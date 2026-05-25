@@ -4,7 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME = "anushajammula/shortlist-app"
         IMAGE_TAG = "${BUILD_NUMBER}"
-        SONARQUBE = "sonar-token"
+        SONAR_HOST_URL = "http://192.168.0.8:30474"
+        SONAR_TOKEN = "sonar-token"
     }
 
     stages {
@@ -28,8 +29,12 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${SONARQUBE}") {
-                    sh 'sonar-scanner'
+                withSonarQubeEnv("${SONAR_TOKEN}") {
+                    sh '''
+                    ./gradlew.sonarqube \
+                     -Dsonar.host.url=${SONAR_HOST_URL} \
+                     -Dsonar.login=${SONAR_TOKEN}
+                    '''
                 }
             }
         }
