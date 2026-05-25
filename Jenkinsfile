@@ -65,6 +65,7 @@ pipeline {
                 # Step 1: Create/Update deployment and service
                 kubectl apply -f k8s/deployment.yaml -n anusha-jammula
                 kubectl apply -f k8s/service.yaml -n anusha-jammula
+                kubectl apply -f k8s/ingress.yaml -n anusha-jammula
         
                 # Step 2: Update image
                 kubectl set image deployment/shortlist-app shortlist-app=$IMAGE_NAME:$IMAGE_TAG -n anusha-jammula
