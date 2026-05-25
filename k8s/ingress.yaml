@@ -4,10 +4,12 @@ metadata:
   name: shortlist-app-ingress
   namespace: anusha-jammula
   annotations:
-    kubernetes.io/ingress.class: "nginx"
+    # Keep this annotation for backward compatibility
+    kubernetes.io/ingress.class: "nginx" 
 spec:
+  ingressClassName: nginx # 👈 Add this explicit line (or "alb" if using AWS Load Balancer Controller)
   rules:
-  - host: radevsecops.shop  # 👈 Put your purchased domain here
+  - host: radevsecops.shop
     http:
       paths:
       - path: /
@@ -16,4 +18,4 @@ spec:
           service:
             name: shortlist-app
             port:
-              number: 80 # Make sure this matches your service target port
+              number: 80 
