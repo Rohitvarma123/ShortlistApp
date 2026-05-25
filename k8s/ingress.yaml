@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shortlist-app-ingress
+  namespace: anusha-jammula
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - host: radevsecops.shop  # 👈 Put your purchased domain here
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: shortlist-app
+            port:
+              number: 80 # Make sure this matches your service target port
