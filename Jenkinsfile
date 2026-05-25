@@ -59,15 +59,21 @@ pipeline {
             }
         }
 
-        stage('Deploy to EKS') {
+       stage('Deploy to EKS') {
             steps {
                 sh '''
-                kubectl set image deployment/shortlist-app shortlist-app=$IMAGE_NAME:$IMAGE_TAG -n anusha-jammula
+                # Step 1: Create/Update deployment and service
                 kubectl apply -f k8s/deployment.yaml -n anusha-jammula
                 kubectl apply -f k8s/service.yaml -n anusha-jammula
-                kubectl rollout status deployment/shortlist-app -n anusha-jammula
+        
+                # Step 2: Update image
+                kubectl set image deployment/shortlist-app shortlist-app=$IMAGE_NAME:$IMAGE_TAG -n anusha-jammula
+        
+                # Step 3: Wait for rollout
+                kubectl rollout status deployment/shortlist-app \
+                -n anusha-jammula
                 '''
-            }
-        }
+             }
+      }
     }
 }
