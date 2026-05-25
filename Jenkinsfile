@@ -27,6 +27,15 @@ pipeline {
             }
         }
 
+       stage('Debug Docker') {
+           steps {
+               sh '''
+               docker --version
+               docker images
+              '''
+          }
+      }
+      
         stage('Docker Build') {
             steps {
                 sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
