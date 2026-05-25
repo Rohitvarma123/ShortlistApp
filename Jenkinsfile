@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "anushajammula/shortlist-app"
         IMAGE_TAG = "${BUILD_NUMBER}"
-        SONARQUBE = "SonarQube"
+        SONARQUBE = "sonar-token"
     }
 
     stages {
