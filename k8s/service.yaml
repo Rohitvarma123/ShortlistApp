@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: shortlist-app-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: shortlist-app
   ports:
