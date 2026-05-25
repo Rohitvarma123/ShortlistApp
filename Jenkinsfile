@@ -60,10 +60,10 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 sh '''
-                kubectl set image deployment/shortlist-app shortlist-app=$IMAGE_NAME:$IMAGE_TAG
-                kubectl apply -f k8s/deployment.yaml
-                kubectl apply -f k8s/service.yaml
-                kubectl rollout status deployment/shortlist-app
+                kubectl set image deployment/shortlist-app shortlist-app=$IMAGE_NAME:$IMAGE_TAG -n anusha-jammula
+                kubectl apply -f k8s/deployment.yaml -n anusha-jammula
+                kubectl apply -f k8s/service.yaml -n anusha-jammula
+                kubectl rollout status deployment/shortlist-app -n anusha-jammula
                 '''
             }
         }
