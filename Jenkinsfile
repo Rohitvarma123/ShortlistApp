@@ -20,29 +20,9 @@ pipeline {
             sh '''
             npm install
             npm run build -- --configuration production
-            cd dist
-            zip -r ../dist.zip .
             '''
        }
     }
-
-    stage('Upload to Nexus') {
-          steps {
-            // 1. Fetch credentials using the first method pattern
-              withCredentials([usernamePassword(
-              credentialsId: 'nexus_creds',
-              usernameVariable: 'NEXUS_USER',
-              passwordVariable: 'NEXUS_PASS'
-              )]) {
-                 // Uploads directly to your raw or maven hosted repository
-                    sh """
-                    curl -u \$NEXUS_USER:\$NEXUS_PASS \
-                         --upload-file dist.zip \
-                         http://192.168.0{BUILD_NUMBER}/angular-project-1.0.${BUILD_NUMBER}.zip
-                    """
-                   }
-               }
-         }
       
        stage('Debug Docker') {
            steps {
