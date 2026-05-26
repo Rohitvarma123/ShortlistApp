@@ -15,17 +15,6 @@ pipeline {
             }
         }
 
-        stage('Build Angular') {
-            steps {
-                 sh '''
-                  npm install
-                  npm run build -- --configuration production
-                  cd dist
-                  zip -r ../dist.zip .
-                  '''
-            }
-        }
-
       stage('Build Angular') {
            steps {
             sh '''
