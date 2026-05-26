@@ -2,20 +2,18 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: shortlist-app-ingress
-  namespace: anusha-jammula
   annotations:
-    # Keep this annotation for backward compatibility
-    kubernetes.io/ingress.class: "nginx" 
+    kubernetes.io/ingress.class: nginx
 spec:
-  ingressClassName: nginx # 👈 Add this explicit line (or "alb" if using AWS Load Balancer Controller)
+  ingressClassName: nginx
   rules:
-  - host: radevsecops.shop
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: shortlist-app
-            port:
-              number: 80 
+    - host: radevsecops.shop
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shortlist-app-service
+                port:
+                  number: 80
