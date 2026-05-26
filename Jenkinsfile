@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    agent {
+      docker {
+            image 'docker:27-cli'
+        }
+    }
 
     environment {
         IMAGE_NAME = "anushajammula/shortlist-app"
