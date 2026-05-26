@@ -34,24 +34,15 @@ pipeline {
               usernameVariable: 'NEXUS_USER',
               passwordVariable: 'NEXUS_PASS'
               )]) {
-                 nexusArtifactUploader(
-                        nexusVersion: 'nexus3',
-                        protocol: 'http',
-                        nexusUrl: '192.168.0.8:30081',
-                        groupId: 'com.anusha.angular',
-                        version: "1.0.${BUILD_NUMBER}",
-                        repository: 'angular-releases',
-                        credentialsId: 'nexus_creds',
-                        artifacts: [
-                            [artifactId: 'angular-project',
-                             classifier: '',
-                             file: 'dist.zip',
-                             type: 'zip']
-                        ]
-                 )
-              }
-           }
-      }
+                 // Uploads directly to your raw or maven hosted repository
+                    sh """
+                    curl -u \$NEXUS_USER:\$NEXUS_PASS \
+                         --upload-file dist.zip \
+                         http://192.168.0{BUILD_NUMBER}/angular-project-1.0.${BUILD_NUMBER}.zip
+                    """
+                   }
+               }
+         }
       
        stage('Debug Docker') {
            steps {
