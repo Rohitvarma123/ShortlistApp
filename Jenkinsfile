@@ -15,18 +15,48 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
         stage('Build Angular') {
             steps {
-                sh 'npm run build -- --configuration production'
+                 sh '''
+                  npm install
+                  npm run build -- --configuration production
+                  cd dist
+                  zip -r ../dist.zip .
+                  '''
             }
         }
 
+      stage('Build Angular') {
+           steps {
+            sh '''
+            npm install
+            npm run build -- --configuration production
+            cd dist
+            zip -r ../dist.zip .
+            '''
+       }
+    }
+
+    stage('Upload to Nexus') {
+          steps {
+                 nexusArtifactUploader(
+                        nexusVersion: 'nexus3',
+                        protocol: 'http',
+                        nexusUrl: '192.168.0.8:30081',
+                        groupId: 'com.anusha.angular',
+                        version: "1.0.${BUILD_NUMBER}",
+                        repository: 'angular-releases',
+                        credentialsId: 'nexus_creds',
+                        artifacts: [
+                            [artifactId: 'angular-project',
+                             classifier: '',
+                             file: 'dist.zip',
+                             type: 'zip']
+                        ]
+               )
+           }
+      }
+      
        stage('Debug Docker') {
            steps {
                sh '''
