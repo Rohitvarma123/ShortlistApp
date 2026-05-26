@@ -28,6 +28,12 @@ pipeline {
 
     stage('Upload to Nexus') {
           steps {
+            // 1. Fetch credentials using the first method pattern
+              withCredentials([usernamePassword(
+              credentialsId: 'nexus_creds',
+              usernameVariable: 'NEXUS_USER',
+              passwordVariable: 'NEXUS_PASS'
+              )]) {
                  nexusArtifactUploader(
                         nexusVersion: 'nexus3',
                         protocol: 'http',
@@ -42,7 +48,8 @@ pipeline {
                              file: 'dist.zip',
                              type: 'zip']
                         ]
-               )
+                 )
+              }
            }
       }
       
