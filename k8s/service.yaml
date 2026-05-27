@@ -1,11 +1,15 @@
 apiVersion: v1
 kind: Service
+
 metadata:
-  name: shortlist-app-service
+  name: angular-service
+
 spec:
-  type: ClusterIP
+  type: LoadBalancer
+
   selector:
-    app: shortlist-app
+    app: angular-app
+
   ports:
     - port: 80
       targetPort: 80
