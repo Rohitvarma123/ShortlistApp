@@ -151,6 +151,7 @@ jobs:
     #################################################
     # ECS DEPLOYMENT
     #################################################
+
     - name: Deploy Frontend ECS
       run: |
         aws ecs update-service \
@@ -162,7 +163,7 @@ jobs:
     - name: Deploy Backend ECS
       run: |
         aws ecs update-service \
-        --cluster backend-cluster \
+        --cluster angular-cluster \
         --service backend-service \
         --force-new-deployment \
         --region eu-west-2
