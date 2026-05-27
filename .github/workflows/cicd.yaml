@@ -64,16 +64,16 @@ jobs:
     # Zip Angular Build Artifact
     - name: Zip Angular Build Artifact
       run: |
-        zip -r angular-build.zip dist/
+       zip -r angular-build.zip dist/
 
 
-    # Upload Artifact to Nexus
+# Upload Artifact to Nexus
     - name: Upload Artifact to Nexus
       run: |
-        curl -v -u ${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }} \
+        curl --fail -v \
+        -u ${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }} \
         --upload-file angular-build.zip \
-        ${{ secrets.NEXUS_REPO_URL }}/repository/angular-releases/angular-build-${{ github.run_number }}.zip
-
+        ${{ secrets.NEXUS_REPO_URL }}/angular-build-${{ github.run_number }}.zip
 
     # Configure AWS Credentials
     - name: Configure AWS Credentials
