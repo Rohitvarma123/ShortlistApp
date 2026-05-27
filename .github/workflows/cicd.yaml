@@ -1,4 +1,4 @@
-name: Angular CI/CD Pipeline
+name: Full Angular + Backend CI/CD Pipeline
 
 on:
   push:
@@ -6,9 +6,7 @@ on:
       - main
 
 jobs:
-
   build-and-deploy:
-
     runs-on: ubuntu-latest
 
     env:
@@ -17,37 +15,42 @@ jobs:
 
     steps:
 
-    # Checkout Source Code
+    #################################################
+    # SOURCE CODE
+    #################################################
     - name: Checkout Source Code
       uses: actions/checkout@v4
 
-
-    # Setup Node.js
+    #################################################
+    # NODE SETUP
+    #################################################
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 22
+        node-version: 18
+        cache: 'npm'
 
-
-    # Install Frontend Dependencies
+    #################################################
+    # FRONTEND BUILD
+    #################################################
     - name: Install Frontend Dependencies
       run: npm install
 
-
-    # Build Angular Application
     - name: Build Angular Application
       run: npm run build -- --configuration=production
 
-
-    # SonarQube Scan
+    #################################################
+    # SONARQUBE SCAN
+    #################################################
     - name: SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v5
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-
-    # Trivy File System Scan
+    #################################################
+    # TRIVY FS SCAN
+    #################################################
     - name: Trivy File System Scan
       uses: aquasecurity/trivy-action@master
       with:
@@ -59,14 +62,12 @@ jobs:
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
 
+    #################################################
+    # ARTIFACT TO NEXUS
+    #################################################
+    - name: Zip Angular Build
+      run: zip -r angular-build.zip dist/
 
-    # Zip Angular Build Artifact
-    - name: Zip Angular Build Artifact
-      run: |
-        zip -r angular-build.zip dist/
-
-
-    # Upload Artifact to Nexus
     - name: Upload Artifact to Nexus
       run: |
         curl --fail -v \
@@ -74,33 +75,27 @@ jobs:
         --upload-file angular-build.zip \
         ${{ secrets.NEXUS_REPO_URL }}/angular-build-${{ github.run_number }}.zip
 
-
-    # Configure AWS Credentials
+    #################################################
+    # AWS CONFIG
+    #################################################
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: eu-west-2
 
-
-    # Login to Amazon ECR
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-
     #################################################
-    # FRONTEND DOCKER BUILD
+    # FRONTEND DOCKER BUILD + PUSH
     #################################################
-
-    # Build Frontend Docker Image
     - name: Build Frontend Docker Image
       run: |
         docker build -t angular-app:${{ github.run_number }} .
 
-
-    # Trivy Frontend Docker Scan
-    - name: Trivy Frontend Docker Scan
+    - name: Scan Frontend Image
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'angular-app:${{ github.run_number }}'
@@ -110,9 +105,7 @@ jobs:
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
 
-
-    # Tag Frontend Docker Image
-    - name: Tag Frontend Docker Image
+    - name: Tag Frontend Image
       run: |
         docker tag angular-app:${{ github.run_number }} \
         ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
@@ -120,27 +113,19 @@ jobs:
         docker tag angular-app:${{ github.run_number }} \
         ${{ secrets.ECR_REPOSITORY }}:latest
 
-
-    # Push Frontend Docker Image
-    - name: Push Frontend Docker Image
+    - name: Push Frontend Image
       run: |
         docker push ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
-
         docker push ${{ secrets.ECR_REPOSITORY }}:latest
 
-
     #################################################
-    # BACKEND DOCKER BUILD
+    # BACKEND DOCKER BUILD + PUSH
     #################################################
-
-    # Build Backend Docker Image
     - name: Build Backend Docker Image
       run: |
         docker build -t backend-app:${{ github.run_number }} ./backend
 
-
-    # Trivy Backend Docker Scan
-    - name: Trivy Backend Docker Scan
+    - name: Scan Backend Image
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'backend-app:${{ github.run_number }}'
@@ -150,9 +135,7 @@ jobs:
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
 
-
-    # Tag Backend Docker Image
-    - name: Tag Backend Docker Image
+    - name: Tag Backend Image
       run: |
         docker tag backend-app:${{ github.run_number }} \
         ${{ secrets.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
@@ -160,20 +143,14 @@ jobs:
         docker tag backend-app:${{ github.run_number }} \
         ${{ secrets.BACKEND_ECR_REPOSITORY }}:latest
 
-
-    # Push Backend Docker Image
-    - name: Push Backend Docker Image
+    - name: Push Backend Image
       run: |
         docker push ${{ secrets.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
-
         docker push ${{ secrets.BACKEND_ECR_REPOSITORY }}:latest
-
 
     #################################################
     # ECS DEPLOYMENT
     #################################################
-
-    # Deploy Frontend ECS
     - name: Deploy Frontend ECS
       run: |
         aws ecs update-service \
@@ -182,36 +159,27 @@ jobs:
         --force-new-deployment \
         --region eu-west-2
 
-
-    # Deploy Backend ECS
     - name: Deploy Backend ECS
       run: |
         aws ecs update-service \
-        --cluster angular-cluster \
+        --cluster backend-cluster \
         --service backend-service \
         --force-new-deployment \
         --region eu-west-2
 
-
     #################################################
-    # EKS DEPLOYMENT
+    # EKS DEPLOYMENT (OPTIONAL)
     #################################################
-
-    # Configure kubectl
     - name: Configure kubectl
       run: |
         aws eks update-kubeconfig \
         --region eu-west-2 \
         --name angular-cluster
 
-
-    # Replace IMAGE_TAG
-    - name: Update Kubernetes Deployment
+    - name: Update Kubernetes Manifest
       run: |
         sed -i "s|IMAGE_TAG|${{ github.run_number }}|g" k8s/deployment.yaml
 
-
-    # Deploy to EKS
     - name: Deploy to EKS
       run: |
         kubectl apply -f k8s/
