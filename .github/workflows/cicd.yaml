@@ -7,9 +7,13 @@ on:
 
 jobs:
 
-  build-and-push:
+  build-and-deploy:
 
     runs-on: ubuntu-latest
+
+    env:
+      EMAIL_USER: ${{ secrets.EMAIL_USER }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
 
     steps:
 
@@ -25,14 +29,9 @@ jobs:
         node-version: 22
 
 
-    # Install Dependencies
-    - name: Install Dependencies
+    # Install Frontend Dependencies
+    - name: Install Frontend Dependencies
       run: npm install
-
-
-    # Skip Angular Tests
-    - name: Skip Angular Tests
-      run: echo "Skipping Angular Tests"
 
 
     # Build Angular Application
@@ -64,16 +63,17 @@ jobs:
     # Zip Angular Build Artifact
     - name: Zip Angular Build Artifact
       run: |
-       zip -r angular-build.zip dist/
+        zip -r angular-build.zip dist/
 
 
-# Upload Artifact to Nexus
+    # Upload Artifact to Nexus
     - name: Upload Artifact to Nexus
       run: |
         curl --fail -v \
         -u ${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }} \
         --upload-file angular-build.zip \
         ${{ secrets.NEXUS_REPO_URL }}/angular-build-${{ github.run_number }}.zip
+
 
     # Configure AWS Credentials
     - name: Configure AWS Credentials
@@ -89,14 +89,18 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
 
-    # Build Docker Image
-    - name: Build Docker Image
+    #################################################
+    # FRONTEND DOCKER BUILD
+    #################################################
+
+    # Build Frontend Docker Image
+    - name: Build Frontend Docker Image
       run: |
         docker build -t angular-app:${{ github.run_number }} .
 
 
-    # Trivy Docker Image Scan
-    - name: Trivy Docker Image Scan
+    # Trivy Frontend Docker Scan
+    - name: Trivy Frontend Docker Scan
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'angular-app:${{ github.run_number }}'
@@ -107,21 +111,70 @@ jobs:
         severity: 'CRITICAL,HIGH'
 
 
-    # Tag Docker Image
-    - name: Tag Docker Image
+    # Tag Frontend Docker Image
+    - name: Tag Frontend Docker Image
       run: |
         docker tag angular-app:${{ github.run_number }} \
         ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
 
+        docker tag angular-app:${{ github.run_number }} \
+        ${{ secrets.ECR_REPOSITORY }}:latest
 
-    # Push Docker Image to ECR
-    - name: Push Docker Image to ECR
+
+    # Push Frontend Docker Image
+    - name: Push Frontend Docker Image
       run: |
-        docker push \
-        ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
+        docker push ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
 
-        # Deploy to ECS
-    - name: Deploy to ECS
+        docker push ${{ secrets.ECR_REPOSITORY }}:latest
+
+
+    #################################################
+    # BACKEND DOCKER BUILD
+    #################################################
+
+    # Build Backend Docker Image
+    - name: Build Backend Docker Image
+      run: |
+        docker build -t backend-app:${{ github.run_number }} ./backend
+
+
+    # Trivy Backend Docker Scan
+    - name: Trivy Backend Docker Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'backend-app:${{ github.run_number }}'
+        format: table
+        exit-code: 0
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
+
+    # Tag Backend Docker Image
+    - name: Tag Backend Docker Image
+      run: |
+        docker tag backend-app:${{ github.run_number }} \
+        ${{ secrets.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
+
+        docker tag backend-app:${{ github.run_number }} \
+        ${{ secrets.BACKEND_ECR_REPOSITORY }}:latest
+
+
+    # Push Backend Docker Image
+    - name: Push Backend Docker Image
+      run: |
+        docker push ${{ secrets.BACKEND_ECR_REPOSITORY }}:${{ github.run_number }}
+
+        docker push ${{ secrets.BACKEND_ECR_REPOSITORY }}:latest
+
+
+    #################################################
+    # ECS DEPLOYMENT
+    #################################################
+
+    # Deploy Frontend ECS
+    - name: Deploy Frontend ECS
       run: |
         aws ecs update-service \
         --cluster angular-cluster \
@@ -129,7 +182,22 @@ jobs:
         --force-new-deployment \
         --region eu-west-2
 
-    # Configure kubectl for EKS
+
+    # Deploy Backend ECS
+    - name: Deploy Backend ECS
+      run: |
+        aws ecs update-service \
+        --cluster angular-cluster \
+        --service backend-service \
+        --force-new-deployment \
+        --region eu-west-2
+
+
+    #################################################
+    # EKS DEPLOYMENT
+    #################################################
+
+    # Configure kubectl
     - name: Configure kubectl
       run: |
         aws eks update-kubeconfig \
@@ -137,18 +205,13 @@ jobs:
         --name angular-cluster
 
 
-# Replace IMAGE_TAG
+    # Replace IMAGE_TAG
     - name: Update Kubernetes Deployment
       run: |
         sed -i "s|IMAGE_TAG|${{ github.run_number }}|g" k8s/deployment.yaml
 
 
-# Deploy to EKS
+    # Deploy to EKS
     - name: Deploy to EKS
       run: |
         kubectl apply -f k8s/
-
-
-
-
-        
