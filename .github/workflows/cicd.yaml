@@ -119,3 +119,22 @@ jobs:
       run: |
         docker push \
         ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
+
+    # Configure kubectl for EKS
+    - name: Configure kubectl
+      run: |
+        aws eks update-kubeconfig \
+        --region eu-west-2 \
+        --name angular-cluster
+
+
+# Replace IMAGE_TAG
+    - name: Update Kubernetes Deployment
+      run: |
+        sed -i "s|IMAGE_TAG|${{ github.run_number }}|g" k8s/deployment.yaml
+
+
+# Deploy to EKS
+    - name: Deploy to EKS
+      run: |
+        kubectl apply -f k8s/
