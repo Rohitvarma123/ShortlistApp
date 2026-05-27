@@ -103,3 +103,6 @@ jobs:
       run: |
         docker push \
         ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
+
+
+        
