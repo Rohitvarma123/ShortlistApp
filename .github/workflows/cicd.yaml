@@ -120,6 +120,15 @@ jobs:
         docker push \
         ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
 
+        # Deploy to ECS
+    - name: Deploy to ECS
+      run: |
+        aws ecs update-service \
+        --cluster angular-cluster \
+        --service angular-service \
+        --force-new-deployment \
+        --region eu-west-2
+
     # Configure kubectl for EKS
     - name: Configure kubectl
       run: |
@@ -138,3 +147,8 @@ jobs:
     - name: Deploy to EKS
       run: |
         kubectl apply -f k8s/
+
+
+
+
+        
