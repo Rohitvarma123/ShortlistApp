@@ -13,9 +13,10 @@ jobs:
 
     steps:
 
-    # Checkout Code
+    # Checkout Source Code
     - name: Checkout Source Code
       uses: actions/checkout@v4
+
 
     # Setup Node.js
     - name: Setup Node.js
@@ -23,17 +24,21 @@ jobs:
       with:
         node-version: 22
 
+
     # Install Dependencies
     - name: Install Dependencies
       run: npm install
+
 
     # Run Angular Tests
     - name: Run Angular Tests
       run: npm test -- --watch=false --code-coverage --browsers=ChromeHeadless
 
+
     # Build Angular Application
     - name: Build Angular Application
       run: npm run build -- --configuration=production
+
 
     # SonarQube Scan
     - name: SonarQube Scan
@@ -42,9 +47,10 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
+
     # Trivy File System Scan
     - name: Trivy File System Scan
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@master
       with:
         scan-type: fs
         scan-ref: .
@@ -54,10 +60,12 @@ jobs:
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
 
-    # Zip Angular Artifact
-    - name: Zip Build Artifact
+
+    # Zip Angular Build
+    - name: Zip Angular Build Artifact
       run: |
         zip -r angular-build.zip dist/
+
 
     # Upload Artifact to Nexus
     - name: Upload Artifact to Nexus
@@ -65,6 +73,7 @@ jobs:
         curl -v -u ${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }} \
         --upload-file angular-build.zip \
         ${{ secrets.NEXUS_URL }}/repository/angular-releases/angular-build-${{ github.run_number }}.zip
+
 
     # Configure AWS Credentials
     - name: Configure AWS Credentials
@@ -74,23 +83,29 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
+
     # Login to Amazon ECR
     - name: Login to Amazon ECR
       uses: aws-actions/amazon-ecr-login@v2
+
 
     # Build Docker Image
     - name: Build Docker Image
       run: |
         docker build -t angular-app:${{ github.run_number }} .
 
+
     # Trivy Docker Image Scan
     - name: Trivy Docker Image Scan
-      run: |
-        docker run --rm \
-        -v /var/run/docker.sock:/var/run/docker.sock \
-        -v $HOME/Library/Caches:/root/.cache/ \
-        aquasec/trivy:latest \
-        image angular-app:${{ github.run_number }}
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'angular-app:${{ github.run_number }}'
+        format: table
+        exit-code: 0
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
 
     # Tag Docker Image
     - name: Tag Docker Image
@@ -98,11 +113,9 @@ jobs:
         docker tag angular-app:${{ github.run_number }} \
         ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
 
+
     # Push Docker Image to ECR
     - name: Push Docker Image to ECR
       run: |
         docker push \
         ${{ secrets.ECR_REPOSITORY }}:${{ github.run_number }}
-
-
-        
