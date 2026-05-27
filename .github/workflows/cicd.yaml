@@ -72,7 +72,7 @@ jobs:
       run: |
         curl -v -u ${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }} \
         --upload-file angular-build.zip \
-        ${{ secrets.NEXUS_URL }}/repository/angular-releases/angular-build-${{ github.run_number }}.zip
+        ${{ secrets.NEXUS_REPO_URL }}/repository/angular-releases/angular-build-${{ github.run_number }}.zip
 
 
     # Configure AWS Credentials
