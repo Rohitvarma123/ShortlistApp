@@ -10,7 +10,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Mail transporter
+// Health check
+app.get('/', (req, res) => {
+    res.send('Backend is running 🚀');
+});
+
+// Gmail transporter
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -19,19 +24,27 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Health check route (optional but useful in ECS)
-app.get('/', (req, res) => {
-    res.send('Backend is running 🚀');
+// VERIFY SMTP CONNECTION (IMPORTANT DEBUG STEP)
+transporter.verify((error, success) => {
+    if (error) {
+        console.log("SMTP ERROR ❌:", error);
+    } else {
+        console.log("SMTP READY ✔ Email service connected");
+    }
 });
 
 // Send email API
 app.post('/send-email', async (req, res) => {
 
+    console.log("REQUEST RECEIVED ✔");
+
     const { name, email, message } = req.body;
 
     try {
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+        console.log("SENDING EMAIL...");
+
+        const info = await transporter.sendMail({
+            from: `"Angular App" <${process.env.EMAIL_USER}>`,
             to: process.env.EMAIL_USER,
             subject: 'Angular Contact Form',
             text: `
@@ -41,15 +54,23 @@ Message: ${message}
             `
         });
 
-        res.status(200).send('Email Sent Successfully');
+        console.log("EMAIL SENT ✔:", info.messageId);
+
+        return res.status(200).json({
+            message: "Email Sent Successfully ✔"
+        });
 
     } catch (error) {
-        console.log(error);
-        res.status(500).send('Email Failed');
+        console.log("EMAIL ERROR ❌:", error);
+
+        return res.status(500).json({
+            message: "Email Failed ❌",
+            error: error.message
+        });
     }
 });
 
-// ✅ IMPORTANT FIX FOR ECS (0.0.0.0)
+// IMPORTANT FOR ECS
 app.listen(3000, "0.0.0.0", () => {
     console.log('Server running on port 3000');
 });
