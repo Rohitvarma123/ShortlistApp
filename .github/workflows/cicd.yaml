@@ -184,3 +184,19 @@ jobs:
     - name: Deploy to EKS
       run: |
         kubectl apply -f k8s/
+
+            #################################################
+    # EMAIL NOTIFICATION
+    #################################################
+    - name: Send Email Notification
+      if: always()
+      run: |
+        npm install nodemailer
+
+        export STATUS="${{ job.status }}"
+        export RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+        node scripts/send-mail.js
+      env:
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
